@@ -39,6 +39,7 @@ def init_db():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
                 client_name TEXT NOT NULL,
                 product TEXT NOT NULL,
                 quantity INTEGER NOT NULL,
@@ -48,6 +49,11 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        try:
+            cursor.execute('ALTER TABLE orders ADD COLUMN user_id INTEGER REFERENCES users(id)')
+            conn.commit()
+        except Exception:
+            conn.rollback()
     else:
         cursor = conn.cursor()
         cursor.execute('''
@@ -62,15 +68,21 @@ def init_db():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
                 client_name TEXT NOT NULL,
                 product TEXT NOT NULL,
                 quantity INTEGER NOT NULL,
                 unit_price REAL NOT NULL,
                 total_price REAL NOT NULL,
                 status TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
             )
         ''')
+        try:
+            cursor.execute('ALTER TABLE orders ADD COLUMN user_id INTEGER REFERENCES users(id)')
+        except Exception:
+            pass
     
     placeholder = '%s' if IS_POSTGRES else '?'
     
@@ -79,26 +91,38 @@ def init_db():
     
     if not user:
         hashed_password = generate_password_hash('admin123')
-        cursor.execute(f'''
-            INSERT INTO users (name, email, password, role)
-            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
-        ''', ('Administrador OMS', 'admin@example.com', hashed_password, 'admin'))
+        if IS_POSTGRES:
+            cursor.execute(f'''
+                INSERT INTO users (name, email, password, role)
+                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}) RETURNING id
+            ''', ('Administrador OMS', 'admin@example.com', hashed_password, 'admin'))
+            admin_id = cursor.fetchone()[0]
+        else:
+            cursor.execute(f'''
+                INSERT INTO users (name, email, password, role)
+                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})
+            ''', ('Administrador OMS', 'admin@example.com', hashed_password, 'admin'))
+            admin_id = cursor.lastrowid
         
         cursor.execute(f'''
-            INSERT INTO orders (client_name, product, quantity, unit_price, total_price, status)
-            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-        ''', ('Juan Perez', 'Laptop Dell XPS 13', 1, 1200.00, 1200.00, 'Pendiente'))
+            INSERT INTO orders (user_id, client_name, product, quantity, unit_price, total_price, status)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', (admin_id, 'Juan Perez', 'Laptop Dell XPS 13', 1, 1200.00, 1200.00, 'Pendiente'))
         
         cursor.execute(f'''
-            INSERT INTO orders (client_name, product, quantity, unit_price, total_price, status)
-            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-        ''', ('María Gomez', 'Monitor UltraWide LG 34"', 2, 450.00, 900.00, 'En Progreso'))
+            INSERT INTO orders (user_id, client_name, product, quantity, unit_price, total_price, status)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', (admin_id, 'María Gomez', 'Monitor UltraWide LG 34"', 2, 450.00, 900.00, 'En Progreso'))
         
         cursor.execute(f'''
-            INSERT INTO orders (client_name, product, quantity, unit_price, total_price, status)
-            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-        ''', ('Carlos Lopez', 'Teclado Mecánico Keychron K2', 3, 95.00, 285.00, 'Completado'))
+            INSERT INTO orders (user_id, client_name, product, quantity, unit_price, total_price, status)
+            VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+        ''', (admin_id, 'Carlos Lopez', 'Teclado Mecánico Keychron K2', 3, 95.00, 285.00, 'Completado'))
         
+        conn.commit()
+    else:
+        admin_id = user[0] if isinstance(user, tuple) else user['id']
+        cursor.execute(f"UPDATE orders SET user_id = {placeholder} WHERE user_id IS NULL", (admin_id,))
         conn.commit()
         
     conn.close()

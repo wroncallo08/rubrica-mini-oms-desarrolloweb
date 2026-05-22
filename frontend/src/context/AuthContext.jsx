@@ -46,6 +46,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const register = async (name, email, password) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const data = await authService.register(name, email, password, "user");
+      
+      setUser(data.user);
+      setToken(data.token);
+      
+      localStorage.setItem('oms_token', data.token);
+      localStorage.setItem('oms_user', JSON.stringify(data.user));
+      
+      setLoading(false);
+      return data;
+    } catch (err) {
+      setError(err.message || 'Error al registrar usuario');
+      setLoading(false);
+      throw err;
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -56,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   const isAuthenticated = !!token;
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated, loading, error, login, logout, setError }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated, loading, error, login, register, logout, setError }}>
       {children}
     </AuthContext.Provider>
   );

@@ -52,14 +52,16 @@ class UserRepository:
 
 class OrderRepository:
     @staticmethod
-    def get_all():
+    def get_by_user(user_id):
         conn = get_db_connection()
         if IS_POSTGRES:
             cursor = conn.cursor(cursor_factory=DictCursor)
         else:
             cursor = conn.cursor()
             
-        cursor.execute("SELECT * FROM orders ORDER BY created_at DESC")
+        placeholder = '%s' if IS_POSTGRES else '?'
+        cursor.execute(f"SELECT * FROM orders WHERE user_id = {placeholder} ORDER BY created_at DESC", (user_id,))
+
         rows = cursor.fetchall()
         conn.close()
         
@@ -67,6 +69,7 @@ class OrderRepository:
         for row in rows:
             orders.append(Order(
                 id=row['id'],
+                user_id=row['user_id'],
                 client_name=row['client_name'],
                 product=row['product'],
                 quantity=row['quantity'],
@@ -85,18 +88,18 @@ class OrderRepository:
         if IS_POSTGRES:
             cursor = conn.cursor(cursor_factory=DictCursor)
             cursor.execute('''
-                INSERT INTO orders (client_name, product, quantity, unit_price, total_price, status)
-                VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, created_at
-            ''', (order.client_name, order.product, order.quantity, order.unit_price, order.total_price, order.status))
+                INSERT INTO orders (user_id, client_name, product, quantity, unit_price, total_price, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, created_at
+            ''', (order.user_id, order.client_name, order.product, order.quantity, order.unit_price, order.total_price, order.status))
             row = cursor.fetchone()
             order.id = row[0]
             order.created_at = row[1]
         else:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO orders (client_name, product, quantity, unit_price, total_price, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (order.client_name, order.product, order.quantity, order.unit_price, order.total_price, order.status))
+                INSERT INTO orders (user_id, client_name, product, quantity, unit_price, total_price, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (order.user_id, order.client_name, order.product, order.quantity, order.unit_price, order.total_price, order.status))
             order.id = cursor.lastrowid
             cursor.execute("SELECT created_at FROM orders WHERE id = ?", (order.id,))
             row = cursor.fetchone()
@@ -108,7 +111,7 @@ class OrderRepository:
         return order
 
     @staticmethod
-    def update_status(order_id, new_status):
+    def update_status(order_id, user_id, new_status):
         conn = get_db_connection()
         placeholder = '%s' if IS_POSTGRES else '?'
         
@@ -117,15 +120,15 @@ class OrderRepository:
             cursor.execute('''
                 UPDATE orders
                 SET status = %s
-                WHERE id = %s
-            ''', (new_status, order_id))
+                WHERE id = %s AND user_id = %s
+            ''', (new_status, order_id, user_id))
         else:
             cursor = conn.cursor()
             cursor.execute('''
                 UPDATE orders
                 SET status = ?
-                WHERE id = ?
-            ''', (new_status, order_id))
+                WHERE id = ? AND user_id = ?
+            ''', (new_status, order_id, user_id))
             
         conn.commit()
         
@@ -136,6 +139,7 @@ class OrderRepository:
         if row:
             return Order(
                 id=row['id'],
+                user_id=row['user_id'],
                 client_name=row['client_name'],
                 product=row['product'],
                 quantity=row['quantity'],

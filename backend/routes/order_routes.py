@@ -26,23 +26,26 @@ def token_required(f):
 @orders_bp.route('', methods=['GET'])
 @token_required
 def get_orders(user_info):
-    response, status_code = OrderController.get_all_orders()
+    user_id = user_info.get('sub')
+    response, status_code = OrderController.get_all_orders(user_id)
     return jsonify(response), status_code
 
 @orders_bp.route('', methods=['POST'])
 @token_required
 def create_order(user_info):
+    user_id = user_info.get('sub')
     data = request.get_json() or {}
-    response, status_code = OrderController.create_order(data)
+    response, status_code = OrderController.create_order(data, user_id)
     return jsonify(response), status_code
 
 @orders_bp.route('/<int:order_id>/status', methods=['PATCH'])
 @token_required
 def update_order_status(user_info, order_id):
+    user_id = user_info.get('sub')
     data = request.get_json() or {}
     new_status = data.get('status')
     if not new_status:
         return jsonify({"error": "El nuevo estado es obligatorio"}), 400
         
-    response, status_code = OrderController.update_order_status(order_id, new_status)
+    response, status_code = OrderController.update_order_status(order_id, user_id, new_status)
     return jsonify(response), status_code

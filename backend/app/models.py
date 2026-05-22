@@ -25,8 +25,9 @@ class User:
         )
 
 class Order:
-    def __init__(self, id=None, client_name="", product="", quantity=1, unit_price=0.0, total_price=None, status="Pendiente", created_at=None):
+    def __init__(self, id=None, user_id=None, client_name="", product="", quantity=1, unit_price=0.0, total_price=None, status="Pendiente", created_at=None):
         self.id = id
+        self.user_id = user_id
         self.client_name = client_name
         self.product = product
         self.quantity = quantity
@@ -41,6 +42,7 @@ class Order:
     def to_dict(self):
         return {
             "id": self.id,
+            "userId": self.user_id,
             "clientName": self.client_name,
             "product": self.product,
             "quantity": self.quantity,
@@ -64,6 +66,7 @@ class Order:
 
         return Order(
             id=data.get("id"),
+            user_id=data.get("userId") or data.get("user_id"),
             client_name=client_name,
             product=product,
             quantity=quantity,
