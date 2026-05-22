@@ -82,7 +82,6 @@ export const LoginPage = () => {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contraseña</label>
-                <span className="text-xs text-primary-400 font-semibold cursor-not-allowed">¿Olvidaste tu contraseña?</span>
               </div>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
@@ -121,10 +120,6 @@ export const LoginPage = () => {
             </button>
           </form>
 
-          <div className="mt-8 text-center text-xs text-slate-500 border-t border-white/5 pt-5 space-y-1">
-            <p>Usuario Semilla para Pruebas:</p>
-            <p className="font-semibold text-slate-400 font-mono">admin@example.com / admin123</p>
-          </div>
         </div>
       </div>
     </div>

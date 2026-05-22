@@ -9,7 +9,10 @@ if IS_POSTGRES:
     import psycopg2
     from psycopg2.extras import DictCursor
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'oms.db')
+if os.environ.get('VERCEL'):
+    DB_PATH = '/tmp/oms.db'
+else:
+    DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'oms.db')
 
 def get_db_connection():
     if IS_POSTGRES:
